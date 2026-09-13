@@ -1,8 +1,15 @@
-﻿@page
+﻿@page "{ConversionType?}/{Input?}"
 @model UnitConverter.Pages.ConversionsModel
 
-<h1>@ViewData["ConversionType"]</h1>
+@if (ViewData["ErrorMessage"] != null)
+{
+    <p class="text-danger">@ViewData["ErrorMessage"]</p>
+}
+else
+{
+    <h1>@Model.DisplayConversionType</h1>
 
-<p>Input: @Model.Input miles</p>
+    <p>Input: @Model.Input</p>
 
-<p>Output: @Model.Output kilometers</p>
+    <p>Output: @Model.Output</p>
+}
