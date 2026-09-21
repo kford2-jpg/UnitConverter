@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using UnitConverter;
 using UnitOf;
 
 namespace UnitConverter.Pages;
@@ -7,36 +8,50 @@ namespace UnitConverter.Pages;
 public class ConversionsModel : PageModel
 {
     [BindProperty(SupportsGet = true)]
-    public string Input { get; set; } = string.Empty;
+    public ConversionModel Conversion { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
-    public string ConversionType { get; set; } = string.Empty;
+    public string Input
+    {
+        get => Conversion.Input;
+        set => Conversion.Input = value;
+    }
 
-    public string Output { get; set; } = string.Empty;
+    [BindProperty(SupportsGet = true)]
+    public string ConversionType
+    {
+        get => Conversion.ConversionType;
+        set => Conversion.ConversionType = value;
+    }
+
+    public string Output
+    {
+        get => Conversion.Output;
+        set => Conversion.Output = value;
+    }
 
     public string DisplayConversionType { get; set; } = string.Empty;
 
     public void OnGet()
     {
-        // Backwards compatibility with previous lessons.
-        if (string.IsNullOrEmpty(ConversionType))
+        if (string.IsNullOrEmpty(Conversion.ConversionType))
         {
-            ConversionType = "Miles to Kilometers";
+            Conversion.ConversionType = ConversionTypes.MilesToKilometers;
         }
 
-        if (string.IsNullOrEmpty(Input))
+        if (string.IsNullOrEmpty(Conversion.Input))
         {
-            Input = "3.1415";
+            Conversion.Input = "3.1415";
         }
 
-        ViewData["ConversionType"] = "Miles to Kilometers";
+        ViewData["ConversionType"] = ConversionTypes.All[ConversionTypes.MilesToKilometers];
         ViewData["Title"] = "Conversions";
 
         double inputValue;
 
         try
         {
-            inputValue = Convert.ToDouble(Input);
+            inputValue = Convert.ToDouble(Conversion.Input);
         }
         catch (FormatException)
         {
@@ -49,53 +64,56 @@ public class ConversionsModel : PageModel
             return;
         }
 
-        DisplayConversionType = ConversionType switch
+        string conversionType = Conversion.ConversionType;
+
+        if (ConversionTypes.All.ContainsKey(conversionType))
         {
-            "MilesToKilometers" => "Miles to Kilometers",
-            "KilometersToMiles" => "Kilometers to Miles",
-            "FahrenheitToCelsius" => "Fahrenheit to Celsius",
-            "CelsiusToFahrenheit" => "Celsius to Fahrenheit",
-            "PoundsToKilograms" => "Pounds to Kilograms",
-            "KilogramsToPounds" => "Kilograms to Pounds",
-            "MilesToFeet" => "Miles to Feet",
-            "FeetToMiles" => "Feet to Miles",
-            "Miles to Kilometers" => "Miles to Kilometers",
-            _ => ConversionType
-        };
+            DisplayConversionType = ConversionTypes.All[conversionType];
+        }
+        else if (string.Equals(
+                     conversionType,
+                     ConversionTypes.All[ConversionTypes.MilesToKilometers],
+                     StringComparison.OrdinalIgnoreCase))
+        {
+            conversionType = ConversionTypes.MilesToKilometers;
+            Conversion.ConversionType = conversionType;
+            DisplayConversionType = ConversionTypes.All[conversionType];
+        }
+        else
+        {
+            ViewData["ErrorMessage"] = "Unknown conversion type.";
+            return;
+        }
 
         double result;
 
         try
         {
-            result = ConversionType switch
+            result = conversionType switch
             {
-                "MilesToKilometers" =>
+                ConversionTypes.MilesToKilometers =>
                     new Length().FromMiles(inputValue).ToKilometers(),
 
-                "KilometersToMiles" =>
+                ConversionTypes.KilometersToMiles =>
                     new Length().FromKilometers(inputValue).ToMiles(),
 
-                "FahrenheitToCelsius" =>
+                ConversionTypes.FahrenheitToCelsius =>
                     new Temperature().FromFahrenheit(inputValue).ToCelsius(),
 
-                "CelsiusToFahrenheit" =>
+                ConversionTypes.CelsiusToFahrenheit =>
                     new Temperature().FromCelsius(inputValue).ToFahrenheit(),
 
-                "PoundsToKilograms" =>
+                ConversionTypes.PoundsToKilograms =>
                     new Mass().FromPounds(inputValue).ToKilograms(),
 
-                "KilogramsToPounds" =>
+                ConversionTypes.KilogramsToPounds =>
                     new Mass().FromKilograms(inputValue).ToPounds(),
 
-                "MilesToFeet" =>
+                ConversionTypes.MilesToFeet =>
                     new Length().FromMiles(inputValue).ToFeet(),
 
-                "FeetToMiles" =>
+                ConversionTypes.FeetToMiles =>
                     new Length().FromFeet(inputValue).ToMiles(),
-
-                // Backwards compatibility
-                "Miles to Kilometers" =>
-                    new Length().FromMiles(inputValue).ToKilometers(),
 
                 _ => throw new InvalidOperationException()
             };
@@ -106,6 +124,6 @@ public class ConversionsModel : PageModel
             return;
         }
 
-        Output = result.ToString();
+        Conversion.Output = result.ToString();
     }
 }
