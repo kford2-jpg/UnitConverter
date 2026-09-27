@@ -1,6 +1,5 @@
 ﻿@page
 @model IndexModel
-@using UnitConverter
 
 @{
     ViewData["Title"] = "Conversion Form";
@@ -9,6 +8,10 @@
 <div class="text-center">
     <h1>Unit Converter</h1>
 </div>
+
+<p>
+    <a asp-page="/QuickConversions">Quick Conversions</a>
+</p>
 
 <form method="get" action="/Conversions">
     <div class="mb-3">
