@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace UnitConverter;
+﻿namespace UnitConverter.Models;
 
 public static class ConversionTypes
 {
