@@ -9,10 +9,14 @@ namespace UnitConverter.Pages;
 public class QuickConversionsModel : PageModel
 {
     private readonly IConversionService _conversionService;
+    private readonly ILogger<QuickConversionsModel> _logger;
 
-    public QuickConversionsModel(IConversionService conversionService)
+    public QuickConversionsModel(
+        IConversionService conversionService,
+        ILogger<QuickConversionsModel> logger)
     {
         _conversionService = conversionService;
+        _logger = logger;
     }
 
     public IEnumerable<SelectListItem> PoundOptions =>
@@ -72,19 +76,53 @@ public class QuickConversionsModel : PageModel
         string input,
         string conversionType)
     {
+        _logger.LogInformation(
+            "Received conversion request for {ConversionType} with input {Input}",
+            conversionType,
+            input);
+
         if (!decimal.TryParse(input, out decimal value))
         {
+            _logger.LogWarning(
+                "Invalid input {Input} for conversion {ConversionType}",
+                input,
+                conversionType);
+
             ErrorMessage = "Input must be a valid number.";
             return Page();
         }
 
         try
         {
-            Output = _conversionService.Convert(value, conversionType).ToString();
+            decimal result = _conversionService.Convert(value, conversionType);
+            Output = result.ToString();
+
+            _logger.LogInformation(
+                "Converted {Input} using {ConversionType} with result {Result}",
+                value,
+                conversionType,
+                result);
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(
+                ex,
+                "Unknown conversion type {ConversionType} for input {Input}",
+                value,
+                conversionType);
+
             ErrorMessage = "Unknown conversion type.";
+            return Page();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Conversion failed for input {Input} using {ConversionType}",
+                value,
+                conversionType);
+
+            ErrorMessage = "An unexpected error occurred during conversion.";
             return Page();
         }
 

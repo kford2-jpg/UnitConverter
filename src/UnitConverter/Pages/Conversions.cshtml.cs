@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using UnitConverter;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using UnitConverter.Models;
 using UnitOf;
 
@@ -8,6 +10,19 @@ namespace UnitConverter.Pages;
 
 public class ConversionsModel : PageModel
 {
+    private readonly ILogger<ConversionsModel>? _logger;
+
+    public ConversionsModel()
+    {
+        _logger = null;
+    }
+
+    [ActivatorUtilitiesConstructor]
+    public ConversionsModel(ILogger<ConversionsModel> logger)
+    {
+        _logger = logger;
+    }
+
     [BindProperty(SupportsGet = true)]
     public ConversionModel Conversion { get; set; } = new();
 
@@ -45,7 +60,8 @@ public class ConversionsModel : PageModel
             Conversion.Input = "3.1415";
         }
 
-        ViewData["ConversionType"] = ConversionTypes.All[ConversionTypes.MilesToKilometers];
+        ViewData["ConversionType"] =
+            ConversionTypes.All[ConversionTypes.MilesToKilometers];
         ViewData["Title"] = "Conversions";
 
         double inputValue;
@@ -54,14 +70,27 @@ public class ConversionsModel : PageModel
         {
             inputValue = Convert.ToDouble(Conversion.Input);
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
+            _logger?.LogWarning(
+                ex,
+                "Invalid input {Input} for conversion {ConversionType}",
+                Conversion.Input,
+                Conversion.ConversionType);
+
             ViewData["ErrorMessage"] = "Input must be a valid number.";
             return;
         }
-        catch (OverflowException)
+        catch (OverflowException ex)
         {
-            ViewData["ErrorMessage"] = "Input is outside the valid numeric range.";
+            _logger?.LogWarning(
+                ex,
+                "Input {Input} is outside the numeric range for {ConversionType}",
+                Conversion.Input,
+                Conversion.ConversionType);
+
+            ViewData["ErrorMessage"] =
+                "Input is outside the valid numeric range.";
             return;
         }
 
@@ -82,6 +111,11 @@ public class ConversionsModel : PageModel
         }
         else
         {
+            _logger?.LogWarning(
+                "Unknown conversion type {ConversionType} for input {Input}",
+                conversionType,
+                Conversion.Input);
+
             ViewData["ErrorMessage"] = "Unknown conversion type.";
             return;
         }
@@ -90,6 +124,7 @@ public class ConversionsModel : PageModel
 
         try
         {
+
             result = conversionType switch
             {
                 ConversionTypes.MilesToKilometers =>
@@ -119,12 +154,25 @@ public class ConversionsModel : PageModel
                 _ => throw new InvalidOperationException()
             };
         }
-        catch (InvalidOperationException)
+        catch (Exception ex)
         {
-            ViewData["ErrorMessage"] = "Unknown conversion type.";
+            _logger?.LogError(
+                ex,
+                "Conversion failed for input {Input} using {ConversionType}",
+                inputValue,
+                conversionType);
+
+            ViewData["ErrorMessage"] =
+                "An unexpected error occurred during conversion.";
             return;
         }
 
         Conversion.Output = result.ToString();
+
+        _logger?.LogInformation(
+            "Converted {Input} using {ConversionType} with result {Result}",
+            inputValue,
+            conversionType,
+            result);
     }
 }
